@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::config::Config;
+use anyhow::Result;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Data {
@@ -11,16 +11,24 @@ pub struct Data {
 
 pub struct Projector {
     pub data: Data,
-    pub config: Config,
+    pub config: ProjectorConfig,
+}
+
+pub struct ProjectorConfig {
+    pub config_path: PathBuf,
+    pub pwd: PathBuf,
 }
 
 // impl From<Config> for Projector {}
-fn default_projector(config: Config) -> Projector {
+fn default_projector(config: ProjectorConfig) -> Projector {
     Projector {
         data: Data {
             projector: HashMap::new(),
         },
-        config: config,
+        config: ProjectorConfig {
+            config_path: config.config_path,
+            pwd: config.pwd,
+        },
     }
 }
 
@@ -77,18 +85,32 @@ impl Projector {
             .map(|x| x.remove(key));
     }
 
-    pub fn from_config(config: Config) -> Self {
-        if std::fs::metadata(&config.config_path).is_ok() {
-            let contents = std::fs::read_to_string(&config.config_path);
+    pub fn from_config(config_path: PathBuf, pwd: PathBuf) -> Self {
+        if std::fs::metadata(&config_path).is_ok() {
+            let contents = std::fs::read_to_string(&config_path);
             let contents = contents.unwrap_or("{\"projector\":{}}".to_string());
             let data = serde_json::from_str(&contents);
             let data = data.unwrap_or(default_data());
 
-            return Projector { config, data };
+            return Projector {
+                data,
+                config: ProjectorConfig { config_path, pwd },
+            };
         }
-        return default_projector(config);
+        return default_projector(ProjectorConfig { config_path, pwd });
+    }
+    pub fn save(&self) -> Result<()> {
+        if let Some(dir) = self.config.config_path.parent() {
+            if !std::fs::metadata(&dir).is_ok() {
+                std::fs::create_dir_all(dir)?;
+            }
+        };
+        let contents = serde_json::to_string(&self.data)?;
+        std::fs::write(&self.config.config_path, contents)?;
+        return Ok(());
     }
 }
+// Maybe this should be a trait?
 trait ValueSetter {}
 impl ValueSetter for Projector {}
 
@@ -179,8 +201,7 @@ mod test {
             data: Data {
                 projector: get_data(),
             },
-            config: crate::config::Config {
-                operation: crate::config::Operation::Print(None),
+            config: super::ProjectorConfig {
                 pwd: pwd,
                 config_path: PathBuf::from(""),
             },

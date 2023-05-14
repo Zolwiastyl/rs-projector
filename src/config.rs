@@ -81,13 +81,17 @@ fn get_config_path(config: Option<PathBuf>) -> Result<PathBuf> {
     if let Some(v) = config {
         return Ok(v);
     }
+    let mut home = if let Ok(home) = std::env::var("XDG_CONFIG_HOME") {
+        PathBuf::from(home)
+    } else if let Ok(home) = std::env::var("HOME") {
+        PathBuf::from(home)
+    } else {
+        panic!("Couldn't load home");
+    };
 
-    let loc = std::env::var("XDG_CONFIG_HOME").context("unable to get XDG_CONFIG_HOME")?;
-    let mut loc = PathBuf::from(loc);
-
-    loc.push("projector");
-    loc.push("projector.json");
-    return Ok(loc);
+    home.push("projector");
+    home.push("projector.json");
+    return Ok(home);
 }
 
 fn get_pwd(pwd: Option<PathBuf>) -> Result<PathBuf> {
