@@ -48,3 +48,10 @@ rs-projector
 ```
 
 Then you will get all variables from your directory, then will get all variables from directory above and until you reach you `$HOME` directory.
+
+### Flags
+
+There are two flags available while running this program:
+
+- `--pwd -p` - you can specify from which directory you want to start searching for variables
+- `--config -c` - you can specify from which file you want to read variables - it defaults to `.projector.json` in your `$HOME` directory
