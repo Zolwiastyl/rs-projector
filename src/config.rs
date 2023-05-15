@@ -89,8 +89,7 @@ fn get_config_path(config: Option<PathBuf>) -> Result<PathBuf> {
         panic!("Couldn't load home");
     };
 
-    home.push("projector");
-    home.push("projector.json");
+    home.push(".projector.json");
     return Ok(home);
 }
 
